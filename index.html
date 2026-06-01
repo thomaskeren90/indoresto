@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>IndoResto — Server Tablet</title>
+<link rel="manifest" href="/manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#0f0e0c;--surface:#1a1814;--card:#231f1a;--border:#2e2a24;
+    --accent:#e8622a;--accent2:#f59e0b;--text:#f5f0e8;--muted:#8a8070;
+    --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--blue:#60a5fa;
+    --r:12px;--r-lg:18px;--r-xl:24px;
+  }
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+  h1,h2,h3,h4,.mono{font-family:'Sora',sans-serif}
+  button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none}
+
+  /* ── APP SHELL ── */
+  .app{display:flex;flex-direction:column;min-height:100vh}
+  .topbar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+  .topbar-brand{font-family:'Sora',sans-serif;font-weight:800;font-size:16px;color:var(--accent)}
+  .topbar-role{font-size:12px;color:var(--muted);background:var(--card);padding:4px 10px;border-radius:20px;font-weight:500}
+  .topbar-status{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green)}
+  .dot-live{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* Tabs */
+  .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:13px 20px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;font-family:'Sora',sans-serif;position:relative}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--text);border-bottom-color:var(--accent)}
+  .tab-badge{position:absolute;top:8px;right:8px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+
+  /* ── SCREENS ── */
+  .screen{display:none;flex:1;overflow-y:auto;padding:16px}
+  .screen.active{display:block}
+
+  /* Section headers */
+  .section-hd{font-family:'Sora',sans-serif;font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;margin-top:4px}
+
+  /* ── SERVE SCREEN ── */
+  .serve-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+
+  .order-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;transition:all .25s}
+  .order-card.ready{border-color:rgba(34,197,94,.5);box-shadow:0 0 0 1px rgba(34,197,94,.15)}
+  .order-card.new{border-color:rgba(96,165,250,.4)}
+  .order-card.served{opacity:.5;filter:grayscale(.6)}
+
+  .oc-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+  .oc-table{font-family:'Sora',sans-serif;font-weight:800;font-size:17px}
+  .oc-time{font-size:12px;color:var(--muted)}
+  .oc-status{font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px}
+  .st-new{background:rgba(96,165,250,.15);color:var(--blue)}
+  .st-ready{background:rgba(34,197,94,.15);color:var(--green)}
+  .st-prep{background:rgba(245,158,11,.15);color:var(--yellow)}
+  .st-served{background:rgba(139,92,246,.15);color:#a78bfa}
+
+  .oc-items{padding:12px 16px;display:flex;flex-direction:column;gap:6px}
+  .oc-item{display:flex;align-items:center;gap:10px;font-size:13px}
+  .oc-qty{width:22px;height:22px;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;font-family:'Sora',sans-serif}
+  .oc-item-name{flex:1}
+  .oc-item-note{font-size:11px;color:var(--muted)}
+  .item-done .oc-item-name{text-decoration:line-through;color:var(--muted)}
+
+  .oc-customer{padding:10px 16px;border-top:1px solid var(--border);background:rgba(255,255,255,.02)}
+  .cust-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .cust-avatar{width:26px;height:26px;border-radius:50%;background:rgba(232,98,42,.2);color:var(--accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Sora',sans-serif}
+  .returning-badge{background:rgba(245,158,11,.12);color:var(--yellow);font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;margin-left:auto}
+  .allergy-tag{background:rgba(239,68,68,.12);color:#fca5a5;font-size:10px;padding:2px 7px;border-radius:5px;font-weight:600}
+
+  .oc-actions{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px}
+  .btn-served{flex:1;padding:12px;border-radius:var(--r);background:var(--green);color:#fff;font-size:13px;font-weight:700;transition:all .2s;font-family:'Sora',sans-serif}
+  .btn-served:hover{background:#16a34a;transform:translateY(-1px);box-shadow:0 6px 20px rgba(34,197,94,.35)}
+  .btn-served:disabled{background:var(--border);color:var(--muted);transform:none;box-shadow:none}
+  .btn-pay{flex:1;padding:12px;border-radius:var(--r);background:var(--accent);color:#fff;font-size:13px;font-weight:700;transition:all .2s;font-family:'Sora',sans-serif}
+  .btn-pay:hover{background:#d4521f;transform:translateY(-1px);box-shadow:0 6px 20px rgba(232,98,42,.35)}
+  .btn-notes{padding:12px 14px;border-radius:var(--r);background:var(--border);color:var(--muted);font-size:13px;transition:all .2s}
+  .btn-notes:hover{background:#3a3530;color:var(--text)}
+
+  /* Alert banner */
+  .alert-banner{padding:10px 14px;border-radius:var(--r);margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;animation:slideDown .4s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes slideDown{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .alert-ready{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#4ade80}
+
+  /* ── NOTES MODAL ── */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+  .modal-sheet{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl) var(--r-xl) 0 0;padding:24px;width:100%;max-width:480px;animation:slideUp .3s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .modal-title{font-family:'Sora',sans-serif;font-weight:700;font-size:16px;margin-bottom:16px}
+  .note-textarea{width:100%;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;resize:vertical;min-height:90px;outline:none;transition:border-color .2s}
+  .note-textarea:focus{border-color:var(--accent)}
+  .allergy-chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+  .chip{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;background:var(--card);border:1px solid var(--border);color:var(--muted);transition:all .2s}
+  .chip.on{background:rgba(239,68,68,.15);border-color:#ef4444;color:#fca5a5}
+  .modal-actions{display:flex;gap:10px;margin-top:16px}
+  .btn-cancel{flex:1;padding:12px;border-radius:var(--r);background:var(--border);color:var(--muted);font-size:14px;font-weight:600;transition:background .2s}
+  .btn-cancel:hover{background:#3a3530}
+  .btn-save{flex:1;padding:12px;border-radius:var(--r);background:var(--accent);color:#fff;font-size:14px;font-weight:700;transition:all .2s;font-family:'Sora',sans-serif}
+  .btn-save:hover{background:#d4521f}
+
+  /* ── TABLES SCREEN ── */
+  .tables-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+  .table-tile{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 14px;text-align:center;cursor:pointer;transition:all .25s}
+  .table-tile:hover{transform:translateY(-2px);border-color:rgba(232,98,42,.4)}
+  .table-tile.occupied{border-color:rgba(232,98,42,.5);background:rgba(232,98,42,.05)}
+  .table-tile.free{border-color:rgba(34,197,94,.3)}
+  .table-tile.reserved{border-color:rgba(245,158,11,.3)}
+  .tt-num{font-family:'Sora',sans-serif;font-weight:800;font-size:24px}
+  .tt-cap{font-size:11px;color:var(--muted);margin-top:2px}
+  .tt-status{font-size:11px;font-weight:600;margin-top:8px;padding:4px 10px;border-radius:6px}
+  .ts-free{background:rgba(34,197,94,.12);color:var(--green)}
+  .ts-occ{background:rgba(232,98,42,.12);color:var(--accent)}
+  .ts-res{background:rgba(245,158,11,.12);color:var(--yellow)}
+  .tt-timer{font-size:11px;color:var(--muted);margin-top:4px}
+
+  /* ── CRM / CUSTOMER LOOKUP ── */
+  .crm-search{display:flex;gap:10px;margin-bottom:20px}
+  .crm-input{flex:1;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;outline:none;transition:border-color .2s}
+  .crm-input:focus{border-color:var(--accent)}
+  .crm-input::placeholder{color:var(--muted)}
+  .btn-lookup{padding:12px 20px;border-radius:var(--r);background:var(--accent);color:#fff;font-size:14px;font-weight:700;font-family:'Sora',sans-serif}
+
+  .profile-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;margin-bottom:16px}
+  .profile-top{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+  .profile-avatar{width:52px;height:52px;border-radius:50%;background:rgba(232,98,42,.2);color:var(--accent);font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;flex-shrink:0}
+  .profile-name{font-family:'Sora',sans-serif;font-weight:700;font-size:18px}
+  .profile-phone{font-size:12px;color:var(--muted);margin-top:2px}
+  .profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+  .ps-item{background:var(--surface);border-radius:var(--r);padding:12px;text-align:center}
+  .ps-val{font-family:'Sora',sans-serif;font-weight:800;font-size:20px;color:var(--text)}
+  .ps-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+  .fav-row{margin-bottom:12px}
+  .fav-title{font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+  .fav-chips{display:flex;gap:6px;flex-wrap:wrap}
+  .fav-chip{background:rgba(232,98,42,.12);color:var(--accent);font-size:12px;padding:5px 12px;border-radius:20px;font-weight:500}
+  .profile-notes{background:var(--surface);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--muted);border-left:3px solid var(--accent)}
+  .birthday-banner{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--yellow);display:flex;align-items:center;gap:8px;margin-bottom:12px}
+
+  /* Toast */
+  .toast-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none;min-width:240px}
+  .toast{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;animation:tin .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .toast.ok{border-color:rgba(34,197,94,.4);color:#4ade80}
+  .toast.info{border-color:rgba(96,165,250,.4);color:var(--blue)}
+  @keyframes tin{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+  /* Empty state */
+  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 20px;color:var(--muted);text-align:center;gap:10px}
+  .empty-icon{font-size:42px;opacity:.5}
+  .empty-title{font-family:'Sora',sans-serif;font-weight:600;font-size:15px;color:var(--text)}
+
+  /* Notification dot animation */
+  .notify-pulse{animation:notifyPulse 2s infinite}
+  @keyframes notifyPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.4)}50%{box-shadow:0 0 0 8px rgba(34,197,94,0)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="topbar-brand">🍛 IndoResto</div>
+    <div class="topbar-role">Server Tablet</div>
+    <div class="topbar-status"><span class="dot-live"></span> Live</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-serve" onclick="switchTab('serve')">
+      Sajikan <span class="tab-badge" id="badge-serve" style="display:none"></span>
+    </div>
+    <div class="tab" id="tab-tables" onclick="switchTab('tables')">Denah Meja</div>
+    <div class="tab" id="tab-crm" onclick="switchTab('crm')">Pelanggan</div>
+  </div>
+
+  <!-- ── SERVE SCREEN ── -->
+  <div class="screen active" id="screen-serve">
+    <div id="ready-alert"></div>
+    <div class="section-hd">Pesanan Aktif</div>
+    <div class="serve-grid" id="serve-grid"></div>
+  </div>
+
+  <!-- ── TABLES SCREEN ── -->
+  <div class="screen" id="screen-tables">
+    <div class="section-hd">Status Meja — 16 Meja</div>
+    <div class="tables-grid" id="tables-grid"></div>
+  </div>
+
+  <!-- ── CRM SCREEN ── -->
+  <div class="screen" id="screen-crm">
+    <div class="section-hd">Cari Pelanggan</div>
+    <div class="crm-search">
+      <input class="crm-input" id="crm-input" type="tel" placeholder="Nomor HP: 0812..." oninput="searchCustomer()">
+      <button class="btn-lookup" onclick="searchCustomer()">Cari</button>
+    </div>
+    <div id="crm-result"></div>
+  </div>
+
+</div><!-- .app -->
+
+<!-- Notes modal -->
+<div class="modal-bg" id="notes-modal" style="display:none" onclick="closeNotesModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-title">📝 Catatan Pelanggan</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Meja <span id="modal-table-num">—</span></div>
+    <textarea class="note-textarea" id="note-text" placeholder="Preferensi, permintaan khusus, komplain..."></textarea>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">Alergi / Pantangan</div>
+    <div class="allergy-chips" id="allergy-chips">
+      <div class="chip" onclick="toggleChip(this,'udang')">🦐 Udang</div>
+      <div class="chip" onclick="toggleChip(this,'kacang')">🥜 Kacang</div>
+      <div class="chip" onclick="toggleChip(this,'susu')">🥛 Susu</div>
+      <div class="chip" onclick="toggleChip(this,'gluten')">🌾 Gluten</div>
+      <div class="chip" onclick="toggleChip(this,'pedas')">🌶 Tidak Pedas</div>
+      <div class="chip" onclick="toggleChip(this,'vegetarian')">🥦 Vegetarian</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeNotesModal()">Batal</button>
+      <button class="btn-save" onclick="saveNotes()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+const S = {
+  activeTab: 'serve',
+  orders: [],
+  tables: [],
+  customers: [],
+  editingOrder: null,
+};
+
+// ── SAMPLE DATA ──
+const CUSTOMERS = [
+  {id:1,name:'Budi Santoso',phone:'08123456789',visits:12,totalSpend:1240000,favorites:['Nasi Goreng Spesial','Ayam Bakar Kecap'],notes:'Suka booth pojok, minta es batu extra',allergies:['udang'],birthday:'1990-06-15'},
+  {id:2,name:'Siti Rahayu',phone:'08987654321',visits:5,totalSpend:480000,favorites:['Gado-Gado','Es Jeruk Peras'],notes:'Vegetarian strict',allergies:['vegetarian'],birthday:'1995-11-03'},
+  {id:3,name:'Ahmad Fauzi',phone:'08112233445',visits:28,totalSpend:3650000,favorites:['Udang Saus Padang','Ayam Geprek','Jus Alpukat'],notes:'Pelanggan VIP, selalu extra pedas',allergies:[],birthday:'1988-03-22'},
+];
+
+const ORDERS_SAMPLE = [
+  {
+    id:1001, table:3, status:'ready', startedAt: Date.now()-8*60000,
+    items:[
+      {qty:2,name:'Nasi Goreng Spesial',spice:'pedas',done:false},
+      {qty:1,name:'Ayam Bakar Kecap',spice:'sedang',done:false},
+      {qty:3,name:'Es Teh Manis',spice:null,done:false},
+    ],
+    customer:{name:'Budi Santoso',visits:12,allergies:['udang'],notes:'Extra es batu'},
+    total:134750, notes:''
+  },
+  {
+    id:1002, table:7, status:'prep', startedAt: Date.now()-4*60000,
+    items:[
+      {qty:1,name:'Udang Saus Padang',spice:'extra pedas',done:false},
+      {qty:1,name:'Cap Cay Kuah',spice:null,done:false},
+      {qty:2,name:'Jus Alpukat',spice:null,done:false},
+    ],
+    customer:{name:'Ahmad Fauzi',visits:28,allergies:[],notes:'VIP — always gets extra pedas'},
+    total:183150, notes:''
+  },
+  {
+    id:1003, table:12, status:'new', startedAt: Date.now()-1*60000,
+    items:[
+      {qty:2,name:'Mie Ayam Bakso',spice:'sedang',done:false},
+      {qty:2,name:'Es Teh Manis',spice:null,done:false},
+    ],
+    customer:null,
+    total:83600, notes:''
+  },
+];
+
+const TABLES_DATA = Array.from({length:16},(_,i)=>({
+  num: i+1,
+  cap: [2,2,4,4,4,6,4,4,2,2,6,4,4,4,2,8][i],
+  status: ['free','occupied','occupied','free','occupied','free','reserved','occupied','free','free','occupied','occupied','free','free','occupied','occupied'][i],
+  since: Date.now() - [0,45,22,0,67,0,0,13,0,0,38,90,0,0,15,5][i]*60000
+}));
+
+S.orders = ORDERS_SAMPLE;
+S.tables = TABLES_DATA;
+
+// ── UTILS ──
+const fmt = n => 'Rp ' + n.toLocaleString('id-ID');
+const elapsed = ms => { const m=Math.floor(ms/60000); return m<60?`${m}m`:`${Math.floor(m/60)}j ${m%60}m`; };
+const initials = name => name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type==='ok'?'ok':'info'}`;
+  el.innerHTML = `<span>${type==='ok'?'✅':'🔔'}</span><span>${msg}</span>`;
+  document.getElementById('toast-wrap').appendChild(el);
+  setTimeout(()=>el.style.opacity='0', 2500);
+  setTimeout(()=>el.remove(), 2800);
+}
+
+// ── TAB SWITCH ──
+function switchTab(t) {
+  S.activeTab = t;
+  ['serve','tables','crm'].forEach(id=>{
+    document.getElementById('screen-'+id).classList.toggle('active',id===t);
+    document.getElementById('tab-'+id).classList.toggle('active',id===t);
+  });
+  if(t==='serve') renderServe();
+  if(t==='tables') renderTables();
+}
+
+// ── SERVE SCREEN ──
+function renderServe() {
+  const grid = document.getElementById('serve-grid');
+  const alert = document.getElementById('ready-alert');
+  const ready = S.orders.filter(o=>o.status==='ready');
+
+  if(ready.length) {
+    alert.innerHTML = `<div class="alert-banner alert-ready">🔔 <strong>${ready.length} pesanan</strong> siap disajikan dari dapur!</div>`;
+  } else {
+    alert.innerHTML = '';
+  }
+
+  const active = S.orders.filter(o=>o.status!=='served');
+  const badge = document.getElementById('badge-serve');
+  badge.textContent = active.length;
+  badge.style.display = active.length ? '' : 'none';
+
+  if(!S.orders.length){
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">🍽️</div><div class="empty-title">Tidak ada pesanan aktif</div><div>Semua meja sudah dilayani</div></div>';
+    return;
+  }
+
+  grid.innerHTML = S.orders.map(o => {
+    const cardClass = o.status==='ready'?'ready':o.status==='new'?'new':o.status==='served'?'served':'';
+    const statusLabel = {new:'🆕 Baru',prep:'🍳 Dimasak',ready:'✅ Siap Saji',served:'🍽️ Sudah Disajikan'}[o.status]||o.status;
+    const statusClass = {new:'st-new',prep:'st-prep',ready:'st-ready',served:'st-served'}[o.status];
+    const elap = elapsed(Date.now()-o.startedAt);
+    const itemsHTML = o.items.map((item,idx)=>`
+      <div class="oc-item${item.done?' item-done':''}">
+        <div class="oc-qty">${item.qty}</div>
+        <div class="oc-item-name">${item.name}</div>
+        ${item.spice?`<div class="oc-item-note">🌶 ${item.spice}</div>`:''}
+        ${o.status==='ready'&&!item.done?`<div style="margin-left:auto;font-size:11px;cursor:pointer;color:var(--green)" onclick="tickItem(${o.id},${idx})">✓ Disajikan</div>`:''}
+      </div>`).join('');
+
+    const custHTML = o.customer ? `
+      <div class="oc-customer">
+        <div class="cust-row">
+          <div class="cust-avatar">${initials(o.customer.name)}</div>
+          <span style="font-size:12px;font-weight:500;color:var(--text)">${o.customer.name}</span>
+          ${o.customer.visits>5?`<span class="returning-badge">⭐ ${o.customer.visits}x kunjungan</span>`:''}
+        </div>
+        ${o.customer.allergies.length?`<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">${o.customer.allergies.map(a=>`<span class="allergy-tag">⚠️ ${a}</span>`).join('')}</div>`:''}
+        ${o.customer.notes?`<div style="font-size:11px;color:var(--muted);margin-top:6px;font-style:italic">"${o.customer.notes}"</div>`:''}
+      </div>` : '';
+
+    return `<div class="order-card ${cardClass}">
+      <div class="oc-header">
+        <div class="oc-table">Meja ${o.table}</div>
+        <div class="oc-time">${elap}</div>
+        <div class="oc-status ${statusClass}">${statusLabel}</div>
+      </div>
+      <div class="oc-items">${itemsHTML}</div>
+      ${custHTML}
+      <div style="padding:8px 16px;font-size:12px;display:flex;justify-content:space-between;color:var(--muted);border-top:1px solid var(--border)">
+        <span>${o.items.reduce((a,i)=>a+i.qty,0)} item</span>
+        <span style="color:var(--accent);font-weight:700;font-family:'Sora',sans-serif">${fmt(o.total)}</span>
+      </div>
+      <div class="oc-actions">
+        <button class="btn-notes" onclick="openNotes(${o.id})" title="Catatan">📝</button>
+        ${o.status!=='served'?`<button class="btn-served${o.status!=='ready'?' disabled':''}" onclick="markServed(${o.id})" ${o.status!=='ready'?'disabled':''}>✓ Disajikan</button>`:''}
+        <button class="btn-pay" onclick="openPayment(${o.id})">💳 Bayar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function tickItem(orderId, itemIdx) {
+  const o = S.orders.find(o=>o.id===orderId);
+  if(o) { o.items[itemIdx].done=true; renderServe(); }
+}
+
+function markServed(orderId) {
+  const o = S.orders.find(o=>o.id===orderId);
+  if(o&&o.status==='ready'){o.status='served'; renderServe(); toast(`Meja ${o.table} sudah disajikan 🍽️`,'ok');}
+}
+
+function openPayment(orderId) {
+  const o = S.orders.find(o=>o.id===orderId);
+  if(!o) return;
+  // Redirect to payment module with order context
+  // In production: window.location.href = `/payment?order=${orderId}`;
+  toast(`Buka modul pembayaran untuk Meja ${o.table}... 💳`,'info');
+  // Simulate transition after 1s
+  setTimeout(()=>{ toast(`Total: ${fmt(o.total)} — Pilih metode pembayaran`,'ok'); },1000);
+}
+
+// ── NOTES MODAL ──
+let _editingId = null;
+function openNotes(orderId) {
+  _editingId = orderId;
+  const o = S.orders.find(o=>o.id===orderId);
+  document.getElementById('modal-table-num').textContent = o.table;
+  document.getElementById('note-text').value = o.notes||'';
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  if(o.customer?.allergies){
+    o.customer.allergies.forEach(a=>{
+      document.querySelectorAll('.chip').forEach(c=>{ if(c.dataset.val===a||c.textContent.includes(a)) c.classList.add('on'); });
+    });
+  }
+  document.getElementById('notes-modal').style.display='flex';
+}
+function closeNotesModal(e) {
+  if(!e||e.target===document.getElementById('notes-modal')) document.getElementById('notes-modal').style.display='none';
+}
+function toggleChip(el, val) { el.dataset.val=val; el.classList.toggle('on'); }
+function saveNotes() {
+  const o = S.orders.find(o=>o.id===_editingId);
+  if(o){
+    o.notes = document.getElementById('note-text').value;
+    const allergies = [...document.querySelectorAll('.chip.on')].map(c=>c.dataset.val);
+    if(o.customer) o.customer.allergies = allergies;
+    toast('Catatan disimpan ✓','ok');
+    document.getElementById('notes-modal').style.display='none';
+    renderServe();
+  }
+}
+
+// ── TABLES SCREEN ──
+function renderTables() {
+  const grid = document.getElementById('tables-grid');
+  grid.innerHTML = S.tables.map(t=>{
+    const statusLabel = {free:'Kosong',occupied:'Terisi',reserved:'Dipesan'}[t.status];
+    const statusClass = {free:'ts-free',occupied:'ts-occ',reserved:'ts-res'}[t.status];
+    const since = t.status==='occupied'&&t.since?`<div class="tt-timer">${elapsed(Date.now()-t.since)}</div>`:'';
+    return `<div class="table-tile ${t.status}" onclick="toast('Meja ${t.num}: ${statusLabel}','info')">
+      <div class="tt-num">${t.num}</div>
+      <div class="tt-cap">👥 ${t.cap} kursi</div>
+      <div class="tt-status ${statusClass}">${statusLabel}</div>
+      ${since}
+    </div>`;
+  }).join('');
+}
+
+// ── CRM SCREEN ──
+function searchCustomer() {
+  const q = document.getElementById('crm-input').value.trim();
+  const result = document.getElementById('crm-result');
+  if(q.length < 4){ result.innerHTML=''; return; }
+  const c = CUSTOMERS.find(c=>c.phone.includes(q)||c.name.toLowerCase().includes(q.toLowerCase()));
+  if(!c){
+    result.innerHTML=`<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Pelanggan tidak ditemukan</div><div>Nomor HP baru — pelanggan pertama kali</div></div>`;
+    return;
+  }
+  const today = new Date();
+  const bday = c.birthday ? new Date(c.birthday) : null;
+  const isBday = bday && bday.getMonth()===today.getMonth() && bday.getDate()===today.getDate();
+  const bdayBanner = isBday ? `<div class="birthday-banner">🎂 Hari ulang tahun ${c.name}! Voucher 20% sudah dikirim ke WhatsApp.</div>` : '';
+  result.innerHTML = `
+    ${bdayBanner}
+    <div class="profile-card">
+      <div class="profile-top">
+        <div class="profile-avatar">${initials(c.name)}</div>
+        <div>
+          <div class="profile-name">${c.name}</div>
+          <div class="profile-phone">📱 ${c.phone}</div>
+          ${c.allergies.length?`<div style="margin-top:4px;display:flex;gap:4px">${c.allergies.map(a=>`<span class="allergy-tag">⚠️ ${a}</span>`).join('')}</div>`:''}
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="ps-item"><div class="ps-val">${c.visits}</div><div class="ps-lbl">Kunjungan</div></div>
+        <div class="ps-item"><div class="ps-val">${fmt(Math.round(c.totalSpend/c.visits))}</div><div class="ps-lbl">Avg. order</div></div>
+        <div class="ps-item"><div class="ps-val">${fmt(c.totalSpend)}</div><div class="ps-lbl">Total spend</div></div>
+      </div>
+      <div class="fav-row">
+        <div class="fav-title">Menu Favorit</div>
+        <div class="fav-chips">${c.favorites.map(f=>`<span class="fav-chip">❤️ ${f}</span>`).join('')}</div>
+      </div>
+      ${c.notes?`<div class="profile-notes">💬 ${c.notes}</div>`:''}
+    </div>`;
+}
+
+// Init
+renderServe();
+renderTables();
+
+// Simulate kitchen "ready" notification after 5s
+setTimeout(()=>{ toast('🔔 Pesanan Meja 3 siap disajikan!','ok'); },5000);
+</script>
+</body>
+</html>
