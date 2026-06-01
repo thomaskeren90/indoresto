@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IndoResto — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0908;--s1:#131110;--s2:#1c1915;--s3:#242019;
+  --border:#2a2520;--border2:#342e27;
+  --acc:#e8622a;--acc2:#f59e0b;--acc3:#22c55e;
+  --text:#f0ebe0;--muted:#7a7060;--muted2:#a89880;
+  --red:#ef4444;--blue:#60a5fa;--purple:#a78bfa;
+  --r:10px;--r-lg:16px;--r-xl:22px;
+}
+html,body{height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+button{font-family:'Sora',sans-serif;cursor:pointer;border:none;outline:none}
+canvas{display:block}
+
+/* ── SHELL ── */
+.shell{display:grid;grid-template-columns:220px 1fr;grid-template-rows:52px 1fr;height:100vh;overflow:hidden}
+
+/* ── TOPBAR ── */
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:0;background:var(--s1);border-bottom:1px solid var(--border);padding:0 20px;z-index:10}
+.brand{font-weight:900;font-size:15px;letter-spacing:-.5px;color:var(--acc);margin-right:24px;white-space:nowrap}
+.topbar-center{flex:1;display:flex;align-items:center;gap:12px}
+.date-range{display:flex;gap:4px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:3px}
+.dr-btn{padding:5px 12px;border-radius:7px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.dr-btn.active{background:var(--acc);color:#fff}
+.dr-btn:hover:not(.active){color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:12px;margin-left:auto}
+.live-pill{display:flex;align-items:center;gap:6px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:#4ade80}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.refresh-btn{width:30px;height:30px;border-radius:8px;background:var(--s2);border:1px solid var(--border);color:var(--muted);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
+.refresh-btn:hover{color:var(--text);border-color:var(--border2)}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--s1);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0}
+.sidebar::-webkit-scrollbar{display:none}
+.nav-section{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0 16px;margin:16px 0 6px}
+.nav-section:first-child{margin-top:0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;transition:all .15s;border-left:2px solid transparent;font-size:13px;font-weight:500;color:var(--muted2)}
+.nav-item:hover{background:rgba(255,255,255,.03);color:var(--text)}
+.nav-item.active{background:rgba(232,98,42,.08);color:var(--text);border-left-color:var(--acc)}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--acc);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px}
+
+/* ── MAIN ── */
+.main{overflow-y:auto;overflow-x:hidden;background:var(--bg)}
+.main::-webkit-scrollbar{width:4px}
+.main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── SCREENS ── */
+.screen{display:none;padding:20px;min-height:100%}
+.screen.active{display:block}
+
+/* ── KPI CARDS ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;position:relative;overflow:hidden;cursor:default;transition:border-color .2s}
+.kpi:hover{border-color:var(--border2)}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--kpi-color,var(--acc))}
+.kpi-label{font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.kpi-icon{font-size:14px}
+.kpi-val{font-size:26px;font-weight:800;letter-spacing:-.5px;line-height:1}
+.kpi-val span{font-size:13px;font-weight:500;color:var(--muted);margin-left:2px}
+.kpi-delta{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;margin-top:8px;padding:2px 8px;border-radius:6px}
+.delta-up{background:rgba(34,197,94,.12);color:#4ade80}
+.delta-down{background:rgba(239,68,68,.12);color:#f87171}
+
+/* ── SECTION HEADERS ── */
+.sec-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;margin-top:4px}
+.sec-title{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sec-action{font-size:11px;color:var(--acc);cursor:pointer;font-weight:600;opacity:.8}
+.sec-action:hover{opacity:1}
+
+/* ── CHART CARDS ── */
+.chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:20px}
+.chart-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px}
+.chart-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-title{font-size:13px;font-weight:700}
+.card-sub{font-size:11px;color:var(--muted)}
+.card-body{padding:16px 18px}
+.card-body-flush{padding:0}
+
+/* ── REVENUE CHART ── */
+.rev-chart-wrap{position:relative;height:200px;padding:16px 18px 12px}
+.chart-y-labels{position:absolute;left:18px;top:16px;bottom:32px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.chart-y-lbl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap}
+.chart-canvas-wrap{position:absolute;left:56px;right:18px;top:16px;bottom:32px}
+.chart-x-labels{position:absolute;left:56px;right:18px;bottom:8px;display:flex;justify-content:space-between}
+.chart-x-lbl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* ── HEATMAP ── */
+.heatmap-wrap{padding:14px 18px}
+.heatmap-grid{display:grid;gap:3px}
+.hm-cell{border-radius:3px;aspect-ratio:1;cursor:pointer;transition:transform .15s,opacity .15s;position:relative}
+.hm-cell:hover{transform:scale(1.15);z-index:1;opacity:1!important}
+.hm-label-row{display:flex;gap:3px;margin-top:6px}
+.hm-label{font-size:9px;color:var(--muted);text-align:center;font-family:'DM Mono',monospace}
+.hm-day-labels{display:flex;flex-direction:column;gap:3px;margin-right:6px;justify-content:space-around}
+.hm-day-lbl{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* ── BAR CHART (menu popularity) ── */
+.bar-list{display:flex;flex-direction:column;gap:10px;padding:14px 18px}
+.bar-item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.bar-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{height:6px;background:var(--s3);border-radius:3px;overflow:hidden;margin-top:4px}
+.bar-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.bar-val{font-size:11px;font-weight:700;color:var(--muted2);font-family:'DM Mono',monospace;text-align:right;white-space:nowrap}
+.bar-rank{font-size:10px;color:var(--muted);margin-bottom:2px;font-family:'DM Mono',monospace}
+
+/* ── DONUT CHART ── */
+.donut-wrap{display:flex;align-items:center;gap:20px;padding:14px 18px}
+.donut-canvas{flex-shrink:0}
+.donut-legend{display:flex;flex-direction:column;gap:8px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.legend-name{flex:1;color:var(--muted2)}
+.legend-pct{font-weight:700;font-family:'DM Mono',monospace}
+
+/* ── TABLE (orders / CRM) ── */
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--s1);position:sticky;top:0}
+.data-table td{padding:11px 14px;border-bottom:1px solid rgba(42,37,32,.6);vertical-align:middle}
+.data-table tr:hover td{background:rgba(255,255,255,.02)}
+.data-table tr:last-child td{border-bottom:none}
+.status-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px}
+.pill-open{background:rgba(96,165,250,.12);color:var(--blue)}
+.pill-closed{background:rgba(34,197,94,.12);color:#4ade80}
+.pill-cancelled{background:rgba(239,68,68,.12);color:#f87171}
+.pill-ready{background:rgba(245,158,11,.12);color:var(--acc2)}
+.tbl-wrap{overflow-x:auto;max-height:340px;overflow-y:auto}
+.tbl-wrap::-webkit-scrollbar{width:3px;height:3px}
+.tbl-wrap::-webkit-scrollbar-thumb{background:var(--border2)}
+
+/* ── PEAK HOUR CHART ── */
+.peak-canvas-wrap{padding:14px 18px 10px;position:relative}
+
+/* ── QUEUE STATS ── */
+.queue-flow{display:flex;gap:0;padding:14px 18px}
+.qf-step{flex:1;text-align:center;position:relative}
+.qf-step:not(:last-child)::after{content:'→';position:absolute;right:-8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px}
+.qf-val{font-size:22px;font-weight:800;color:var(--text)}
+.qf-lbl{font-size:10px;color:var(--muted);margin-top:3px}
+.qf-sub{font-size:10px;color:var(--acc);font-weight:600;margin-top:2px}
+
+/* ── MINI SPARKLINE ── */
+.spark-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.spark-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px}
+.spark-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.spark-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.spark-val{font-size:20px;font-weight:800}
+.spark-delta{font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px}
+
+/* ── TABLE TURNOVER ── */
+.turnover-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;padding:14px 18px}
+.tt-cell{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;border:1px solid var(--border)}
+.tt-cell:hover{transform:scale(1.05)}
+.tt-num{font-size:11px;font-weight:800}
+.tt-turns{font-size:9px;font-weight:600;margin-top:2px}
+.turns-0{background:var(--s3);color:var(--muted)}
+.turns-1{background:rgba(245,158,11,.12);color:var(--acc2);border-color:rgba(245,158,11,.2)}
+.turns-2{background:rgba(34,197,94,.12);color:#4ade80;border-color:rgba(34,197,94,.2)}
+.turns-3{background:rgba(232,98,42,.15);color:var(--acc);border-color:rgba(232,98,42,.3)}
+.turns-4{background:rgba(232,98,42,.25);color:var(--acc);border-color:rgba(232,98,42,.5)}
+
+/* ── CRM SCREEN ── */
+.crm-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.tier-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px}
+.tier-regular{background:rgba(120,113,108,.15);color:var(--muted2)}
+.tier-silver{background:rgba(148,163,184,.15);color:#94a3b8}
+.tier-gold{background:rgba(245,158,11,.15);color:var(--acc2)}
+.tier-vip{background:rgba(167,139,250,.15);color:var(--purple)}
+
+/* ── TOOLTIP ── */
+.tooltip{position:fixed;background:var(--s1);border:1px solid var(--border2);border-radius:var(--r);padding:8px 12px;font-size:11px;pointer-events:none;z-index:999;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.tt-name{font-weight:700;margin-bottom:4px}
+.tt-val{color:var(--acc);font-family:'DM Mono',monospace;font-weight:600}
+
+/* ── REALTIME TICKER ── */
+.ticker{display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.15);border-radius:var(--r);margin-bottom:16px;font-size:12px;overflow:hidden}
+.ticker-label{color:#4ade80;font-weight:700;white-space:nowrap;flex-shrink:0}
+.ticker-track{flex:1;overflow:hidden;position:relative;height:16px}
+.ticker-items{display:flex;gap:32px;position:absolute;white-space:nowrap;animation:tickerScroll 20s linear infinite}
+@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-item{color:var(--muted2);font-size:11px}
+.ticker-item b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">🍛 IndoResto</div>
+    <div class="topbar-center">
+      <div class="date-range" id="date-range">
+        <div class="dr-btn active" onclick="setRange('today',this)">Hari Ini</div>
+        <div class="dr-btn" onclick="setRange('week',this)">7 Hari</div>
+        <div class="dr-btn" onclick="setRange('month',this)">30 Hari</div>
+        <div class="dr-btn" onclick="setRange('year',this)">Tahun Ini</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-pill"><span class="live-dot"></span>Live</div>
+      <div class="refresh-btn" onclick="refreshAll()" title="Refresh">↺</div>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section">Utama</div>
+    <div class="nav-item active" onclick="showScreen('overview',this)"><span class="nav-icon">📊</span>Overview</div>
+    <div class="nav-item" onclick="showScreen('revenue',this)"><span class="nav-icon">💰</span>Penjualan</div>
+    <div class="nav-item" onclick="showScreen('menu',this)"><span class="nav-icon">🍽️</span>Menu Populer</div>
+    <div class="nav-item" onclick="showScreen('queue',this)"><span class="nav-icon">🕐</span>Antrian</div>
+    <div class="nav-item" onclick="showScreen('tables',this)"><span class="nav-icon">🪑</span>Meja & Turnover</div>
+    <div class="nav-section">Pelanggan</div>
+    <div class="nav-item" onclick="showScreen('crm',this)"><span class="nav-icon">👥</span>CRM</div>
+    <div class="nav-item" onclick="showScreen('loyalty',this)"><span class="nav-icon">⭐</span>Loyalty</div>
+    <div class="nav-section">Laporan</div>
+    <div class="nav-item" onclick="showScreen('realtime',this)"><span class="nav-icon">⚡</span>Real-time<span class="nav-badge" id="live-badge">3</span></div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="main">
+
+    <!-- ── OVERVIEW ── -->
+    <div class="screen active" id="screen-overview">
+      <div class="ticker">
+        <span class="ticker-label">⚡ LIVE</span>
+        <div class="ticker-track"><div class="ticker-items" id="ticker-items"></div></div>
+      </div>
+
+      <div class="kpi-grid" id="kpi-overview"></div>
+
+      <div class="chart-grid">
+        <!-- Revenue trend -->
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">Pendapatan Harian</div><div class="card-sub" id="rev-period-sub">7 hari terakhir</div></div>
+            <div style="display:flex;gap:8px">
+              <div id="rev-total-display" style="font-size:13px;font-weight:800;color:var(--acc)"></div>
+            </div>
+          </div>
+          <div class="rev-chart-wrap" id="rev-chart-wrap">
+            <div class="chart-y-labels" id="rev-y-labels"></div>
+            <div class="chart-canvas-wrap"><canvas id="rev-canvas"></canvas></div>
+            <div class="chart-x-labels" id="rev-x-labels"></div>
+          </div>
+        </div>
+
+        <!-- Payment methods donut -->
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">Metode Pembayaran</div><div class="card-sub">Distribusi hari ini</div></div>
+          </div>
+          <div class="donut-wrap">
+            <canvas id="donut-canvas" width="110" height="110" class="donut-canvas"></canvas>
+            <div class="donut-legend" id="donut-legend"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-grid-3">
+        <!-- Peak hours heatmap -->
+        <div class="card">
+          <div class="card-head"><div class="card-title">Peak Hours</div><div class="card-sub">Pesanan per jam & hari</div></div>
+          <div class="heatmap-wrap" id="heatmap-wrap"></div>
+        </div>
+        <!-- Top menu items -->
+        <div class="card">
+          <div class="card-head"><div class="card-title">Menu Terlaris</div><div class="card-sub">Berdasarkan jumlah pesanan</div></div>
+          <div class="bar-list" id="top-menu-bars"></div>
+        </div>
+        <!-- Table turnover -->
+        <div class="card">
+          <div class="card-head"><div class="card-title">Turnover Meja</div><div class="card-sub">Jumlah cover hari ini</div></div>
+          <div class="turnover-grid" id="turnover-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REVENUE ── -->
+    <div class="screen" id="screen-revenue">
+      <div class="kpi-grid" id="kpi-revenue"></div>
+      <div class="chart-grid">
+        <div class="card">
+          <div class="card-head"><div class="card-title">Trend Pendapatan</div><div class="card-sub">Harian + moving average</div></div>
+          <div class="rev-chart-wrap" style="height:240px" id="rev2-chart-wrap">
+            <div class="chart-y-labels" id="rev2-y-labels"></div>
+            <div class="chart-canvas-wrap"><canvas id="rev2-canvas"></canvas></div>
+            <div class="chart-x-labels" id="rev2-x-labels"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Breakdown Kategori</div></div>
+          <div class="donut-wrap">
+            <canvas id="donut2-canvas" width="110" height="110" class="donut-canvas"></canvas>
+            <div class="donut-legend" id="donut2-legend"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head"><div class="card-title">Riwayat Transaksi</div><div class="card-sub">50 pesanan terbaru</div></div>
+        <div class="tbl-wrap"><table class="data-table" id="orders-table"></table></div>
+      </div>
+    </div>
+
+    <!-- ── MENU ── -->
+    <div class="screen" id="screen-menu">
+      <div class="kpi-grid" id="kpi-menu"></div>
+      <div class="chart-grid">
+        <div class="card">
+          <div class="card-head"><div class="card-title">Ranking Menu</div><div class="card-sub">Berdasarkan jumlah & pendapatan</div></div>
+          <div class="bar-list" id="full-menu-bars" style="max-height:400px;overflow-y:auto"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Distribusi Kategori</div></div>
+          <div class="donut-wrap">
+            <canvas id="donut3-canvas" width="120" height="120" class="donut-canvas"></canvas>
+            <div class="donut-legend" id="donut3-legend"></div>
+          </div>
+          <div class="card-head" style="border-top:1px solid var(--border);border-bottom:none;margin-top:0">
+            <div class="card-title" style="font-size:12px">Menu Paling Sedikit Dipesan</div>
+          </div>
+          <div class="bar-list" id="least-menu-bars"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── QUEUE ── -->
+    <div class="screen" id="screen-queue">
+      <div class="kpi-grid" id="kpi-queue"></div>
+      <div class="chart-grid">
+        <div class="card">
+          <div class="card-head"><div class="card-title">Volume Antrian per Jam</div><div class="card-sub">Rata-rata 7 hari terakhir</div></div>
+          <div class="peak-canvas-wrap" id="peak-canvas-wrap" style="height:220px">
+            <canvas id="peak-canvas"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Queue Flow Hari Ini</div></div>
+          <div class="queue-flow">
+            <div class="qf-step"><div class="qf-val" id="qf-joined">47</div><div class="qf-lbl">Bergabung</div></div>
+            <div class="qf-step"><div class="qf-val" id="qf-notified">31</div><div class="qf-lbl">Dinotif WA</div></div>
+            <div class="qf-step"><div class="qf-val" id="qf-seated">39</div><div class="qf-lbl">Duduk</div></div>
+            <div class="qf-step"><div class="qf-val" id="qf-noshow">8</div><div class="qf-lbl">No-show</div><div class="qf-sub">17%</div></div>
+          </div>
+          <div style="padding:0 18px 14px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700">Waktu Tunggu Rata-rata</div>
+            <div style="display:flex;gap:10px">
+              <div style="flex:1;background:var(--s3);border-radius:var(--r);padding:12px;text-align:center">
+                <div style="font-size:18px;font-weight:800;color:var(--acc)">22m</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px">Hari Kerja</div>
+              </div>
+              <div style="flex:1;background:var(--s3);border-radius:var(--r);padding:12px;text-align:center">
+                <div style="font-size:18px;font-weight:800;color:var(--red)">41m</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px">Weekend</div>
+              </div>
+              <div style="flex:1;background:var(--s3);border-radius:var(--r);padding:12px;text-align:center">
+                <div style="font-size:18px;font-weight:800;color:var(--acc2)">12m</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px">Sepi</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TABLES & TURNOVER ── -->
+    <div class="screen" id="screen-tables">
+      <div class="kpi-grid" id="kpi-tables"></div>
+      <div class="chart-grid">
+        <div class="card">
+          <div class="card-head"><div class="card-title">Heatmap Aktivitas Meja</div><div class="card-sub">Cover per meja per hari ini</div></div>
+          <div style="padding:14px 18px">
+            <div id="table-heatmap" style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px"></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:10px;color:var(--muted)">
+              <span>Lebih sedikit</span>
+              <div id="legend-bar" style="display:flex;gap:2px"></div>
+              <span>Lebih banyak</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Avg. Durasi Meja</div><div class="card-sub">Waktu duduk rata-rata</div></div>
+          <div class="bar-list" id="table-duration-bars"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CRM ── -->
+    <div class="screen" id="screen-crm">
+      <div class="kpi-grid" id="kpi-crm"></div>
+      <div class="chart-grid">
+        <div class="card">
+          <div class="card-head"><div class="card-title">Top 20 Pelanggan</div><div class="card-sub">Berdasarkan total spend</div></div>
+          <div class="tbl-wrap"><table class="data-table" id="crm-table"></table></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Distribusi Tier</div></div>
+          <div class="donut-wrap">
+            <canvas id="donut4-canvas" width="110" height="110" class="donut-canvas"></canvas>
+            <div class="donut-legend" id="donut4-legend"></div>
+          </div>
+          <div style="padding:12px 18px;border-top:1px solid var(--border)">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:10px">Ulang Tahun Minggu Ini</div>
+            <div id="birthday-list" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LOYALTY ── -->
+    <div class="screen" id="screen-loyalty">
+      <div class="kpi-grid" id="kpi-loyalty"></div>
+      <div class="chart-grid-2">
+        <div class="card">
+          <div class="card-head"><div class="card-title">Voucher Dikirim</div><div class="card-sub">30 hari terakhir</div></div>
+          <div class="bar-list" id="voucher-bars"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Repeat Visit Rate</div></div>
+          <div style="padding:18px">
+            <div style="display:flex;flex-direction:column;gap:12px" id="repeat-bars"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REALTIME ── -->
+    <div class="screen" id="screen-realtime">
+      <div class="kpi-grid" id="kpi-rt"></div>
+      <div class="chart-grid-2">
+        <div class="card">
+          <div class="card-head"><div class="card-title">Pesanan Masuk (Live)</div><div class="card-sub">Update setiap 10 detik</div></div>
+          <div style="padding:0" id="rt-orders-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Pendapatan Real-time</div><div class="card-sub">Akumulasi hari ini</div></div>
+          <div style="padding:16px 18px">
+            <div style="font-size:36px;font-weight:900;color:var(--acc);font-variant-numeric:tabular-nums;letter-spacing:-1px" id="rt-revenue">Rp 0</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">vs kemarin: <span style="color:#4ade80;font-weight:700" id="rt-vs-yesterday">+0%</span></div>
+            <canvas id="rt-canvas" style="margin-top:16px;width:100%;height:80px"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="tooltip" id="tooltip">
+  <div class="tt-name" id="tt-name"></div>
+  <div class="tt-val" id="tt-val"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA GENERATION
+// ══════════════════════════════════════════
+const fmt    = n => 'Rp ' + Math.round(n).toLocaleString('id-ID');
+const fmtShort = n => n >= 1e6 ? `Rp ${(n/1e6).toFixed(1)}jt` : n >= 1e3 ? `Rp ${Math.round(n/1e3)}rb` : fmt(n);
+const rand   = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const lerp   = (a,b,t) => a+(b-a)*t;
+
+const DAYS_ID  = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+const HOURS    = Array.from({length:14},(_,i)=>i+9); // 09:00–22:00
+const MENU_ITEMS = [
+  {name:'Nasi Goreng Spesial',cat:'Nasi',price:35000,emoji:'🍳'},
+  {name:'Ayam Bakar Kecap',cat:'Ayam',price:45000,emoji:'🍗'},
+  {name:'Mie Ayam Bakso',cat:'Mie',price:30000,emoji:'🍜'},
+  {name:'Udang Saus Padang',cat:'Seafood',price:65000,emoji:'🦐'},
+  {name:'Ayam Geprek',cat:'Ayam',price:38000,emoji:'🔥'},
+  {name:'Ikan Bakar Bumbu Bali',cat:'Seafood',price:75000,emoji:'🐟'},
+  {name:'Kwetiau Goreng',cat:'Mie',price:33000,emoji:'🥘'},
+  {name:'Gado-Gado',cat:'Sayur',price:22000,emoji:'🥗'},
+  {name:'Jus Alpukat',cat:'Minuman',price:18000,emoji:'🥑'},
+  {name:'Es Teh Manis',cat:'Minuman',price:8000,emoji:'🧋'},
+  {name:'Nasi Uduk Jakarta',cat:'Nasi',price:32000,emoji:'🍱'},
+  {name:'Cap Cay Kuah',cat:'Sayur',price:25000,emoji:'🥬'},
+  {name:'Nasi Lemak',cat:'Nasi',price:28000,emoji:'🥥'},
+  {name:'Es Jeruk Peras',cat:'Minuman',price:12000,emoji:'🍊'},
+];
+
+const PAYMENT_METHODS = ['GoPay','OVO','DANA','ShopeePay','Kartu Debit','Tunai'];
+const CUSTOMER_NAMES  = ['Budi Santoso','Siti Rahayu','Ahmad Fauzi','Dewi Kusuma','Rizki Pratama','Andi Wijaya','Nur Hidayah','Fajar Setiawan','Ratna Sari','Hendra Gunawan','Yuli Astuti','Dimas Purnama','Kartika Dewi','Agus Triyono','Mega Putri','Reza Hakim'];
+
+// Generate synthetic datasets
+function genDailyRevenue(days) {
+  const base = 4200000;
+  return Array.from({length:days},(_,i)=>{
+    const weekday = ((new Date().getDay()-days+i+1)+7)%7;
+    const isWknd  = weekday===0||weekday===6;
+    const trend   = 1 + (i/days)*0.15;
+    return Math.round((base + rand(-400000,800000)) * trend * (isWknd?1.35:1));
+  });
+}
+
+function genHeatmap() {
+  // [day 0-6][hour 0-13]
+  return DAYS_ID.map((d,di)=>
+    HOURS.map(h=>{
+      const isWknd = di===0||di===6;
+      let base = 3;
+      if(h>=12&&h<=14) base=12; // lunch
+      if(h>=18&&h<=21) base=14; // dinner
+      if(h===12||h===19) base=16;
+      if(isWknd) base=Math.round(base*1.3);
+      return rand(Math.max(0,base-4),base+4);
+    })
+  );
+}
+
+function genMenuOrders() {
+  const weights = [100,85,80,55,75,42,68,45,90,120,60,38,50,85];
+  return MENU_ITEMS.map((m,i)=>({
+    ...m,
+    orders: rand(weights[i]-15, weights[i]+15),
+    revenue: 0
+  })).map(m=>({...m, revenue: m.orders * m.price}))
+   .sort((a,b)=>b.orders-a.orders);
+}
+
+function genOrders(n) {
+  return Array.from({length:n},(_,i)=>{
+    const items = rand(2,6);
+    const total = rand(45000,280000);
+    const statuses = ['closed','closed','closed','closed','open','ready'];
+    const methods  = PAYMENT_METHODS;
+    const now      = Date.now();
+    return {
+      id: 1000+n-i,
+      table: rand(1,16),
+      customer: CUSTOMER_NAMES[rand(0,CUSTOMER_NAMES.length-1)],
+      items,
+      total,
+      status: statuses[rand(0,statuses.length-1)],
+      method: methods[rand(0,methods.length-1)],
+      time: new Date(now - rand(0, 8*3600000)).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})
+    };
+  });
+}
+
+function genCustomers(n) {
+  const tiers = ['regular','regular','regular','silver','silver','gold','vip'];
+  return CUSTOMER_NAMES.concat(CUSTOMER_NAMES).slice(0,n).map((name,i)=>({
+    name,
+    phone: `08${rand(10,99)}${rand(10000000,99999999)}`,
+    visits: rand(1,52),
+    spend: rand(80000,8500000),
+    tier: tiers[rand(0,tiers.length-1)],
+    lastVisit: `${rand(1,30)} hari lalu`,
+    birthday: rand(0,1)?`${rand(1,28)} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'][rand(0,11)]}`:null
+  })).sort((a,b)=>b.spend-a.spend);
+}
+
+const DATA = {
+  range: 'today',
+  revenue7:  genDailyRevenue(7),
+  revenue30: genDailyRevenue(30),
+  heatmap:   genHeatmap(),
+  menuOrders:genMenuOrders(),
+  orders:    genOrders(50),
+  customers: genCustomers(16),
+  rtRevenue: 0,
+  rtData:    [],
+};
+
+// Today totals
+DATA.todayRevenue   = DATA.revenue7[6];
+DATA.todayOrders    = rand(62,85);
+DATA.todayAvgOrder  = Math.round(DATA.todayRevenue/DATA.todayOrders);
+DATA.todayCovers    = rand(130,195);
+DATA.queueToday     = rand(40,55);
+DATA.avgWait        = rand(18,28);
+DATA.rtRevenue      = DATA.todayRevenue;
+DATA.rtData         = DATA.revenue7.slice(-6).map(v=>v+rand(-200000,200000));
+
+// Payment method distribution
+DATA.paymentDist = [
+  {name:'GoPay',     pct:28, color:'#00ADE0'},
+  {name:'OVO',       pct:18, color:'#4C3494'},
+  {name:'DANA',      pct:15, color:'#0085FF'},
+  {name:'ShopeePay', pct:12, color:'#ee4d2d'},
+  {name:'Kartu',     pct:14, color:'#60a5fa'},
+  {name:'Tunai',     pct:13, color:'#a78bfa'},
+];
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+const _screens = {};
+function showScreen(id, el) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  renderScreen(id);
+}
+
+function renderScreen(id) {
+  const fn = {
+    overview: renderOverview,
+    revenue:  renderRevenue,
+    menu:     renderMenuScreen,
+    queue:    renderQueueScreen,
+    tables:   renderTablesScreen,
+    crm:      renderCRM,
+    loyalty:  renderLoyalty,
+    realtime: renderRealtime,
+  }[id];
+  if(fn) fn();
+}
+
+function setRange(r, el) {
+  DATA.range = r;
+  document.querySelectorAll('.dr-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderScreen(currentScreen());
+}
+
+function currentScreen() {
+  return document.querySelector('.screen.active')?.id.replace('screen-','') || 'overview';
+}
+
+function refreshAll() {
+  const btn = document.querySelector('.refresh-btn');
+  btn.style.transform='rotate(360deg)';btn.style.transition='transform .5s';
+  setTimeout(()=>{btn.style.transform='';btn.style.transition=''},600);
+  renderScreen(currentScreen());
+}
+
+// ══════════════════════════════════════════
+// KPI BUILDER
+// ══════════════════════════════════════════
+function kpiCard(label,val,delta,color,icon,subval='') {
+  const isUp = delta>=0;
+  return `<div class="kpi" style="--kpi-color:${color}">
+    <div class="kpi-label"><span class="kpi-icon">${icon}</span>${label}</div>
+    <div class="kpi-val">${val}${subval?`<span>${subval}</span>`:''}</div>
+    <div class="kpi-delta ${isUp?'delta-up':'delta-down'}">${isUp?'↑':'↓'} ${Math.abs(delta)}% vs kemarin</div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════
+// OVERVIEW
+// ══════════════════════════════════════════
+function renderOverview() {
+  document.getElementById('kpi-overview').innerHTML = [
+    kpiCard('Pendapatan Hari Ini', fmtShort(DATA.todayRevenue), +8, 'var(--acc)', '💰'),
+    kpiCard('Total Pesanan', DATA.todayOrders, +12, 'var(--blue)', '🧾', ' pesanan'),
+    kpiCard('Avg. Order Value', fmtShort(DATA.todayAvgOrder), +3, 'var(--acc2)', '📈'),
+    kpiCard('Cover Hari Ini', DATA.todayCovers, +6, 'var(--purple)', '🪑', ' tamu'),
+  ].join('');
+
+  renderRevenueChart('rev-canvas','rev-y-labels','rev-x-labels', DATA.revenue7, 7);
+  document.getElementById('rev-period-sub').textContent = '7 hari terakhir';
+  document.getElementById('rev-total-display').textContent = fmtShort(DATA.revenue7.reduce((a,b)=>a+b,0));
+  renderDonut('donut-canvas','donut-legend', DATA.paymentDist);
+  renderHeatmap();
+  renderTopMenuBars('top-menu-bars', DATA.menuOrders.slice(0,6));
+  renderTurnoverGrid();
+  renderTicker();
+}
+
+// ══════════════════════════════════════════
+// REVENUE CHART (line + fill)
+// ══════════════════════════════════════════
+function renderRevenueChart(canvasId, yId, xId, data, days) {
+  const wrap  = document.querySelector(`#${canvasId}`).parentElement;
+  const W     = wrap.clientWidth || 300;
+  const H     = wrap.clientHeight || 160;
+  const canvas= document.getElementById(canvasId);
+  canvas.width = W; canvas.height = H;
+  const ctx   = canvas.getContext('2d');
+  const max   = Math.max(...data)*1.1;
+  const min   = Math.min(...data)*0.9;
+
+  // Y labels
+  const ySteps = 4;
+  document.getElementById(yId).innerHTML = Array.from({length:ySteps+1},(_,i)=>{
+    const v = min + (max-min)*(1-i/ySteps);
+    return `<div class="chart-y-lbl">${fmtShort(v)}</div>`;
+  }).join('');
+
+  // X labels
+  const today = new Date();
+  document.getElementById(xId).innerHTML = data.map((_,i)=>{
+    const d = new Date(today); d.setDate(d.getDate()-(data.length-1-i));
+    return `<div class="chart-x-lbl">${d.getDate()}/${d.getMonth()+1}</div>`;
+  }).join('');
+
+  ctx.clearRect(0,0,W,H);
+  const pts = data.map((v,i)=>({
+    x: (i/(data.length-1))*W,
+    y: H - ((v-min)/(max-min))*H
+  }));
+
+  // Fill gradient
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'rgba(232,98,42,.28)');
+  grad.addColorStop(1,'rgba(232,98,42,0)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, H);
+  pts.forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.lineTo(pts[pts.length-1].x, H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Moving average line (amber)
+  if(data.length>=3) {
+    ctx.beginPath();
+    const ma = data.map((_,i)=>i<2?data[i]:(data[i]+data[i-1]+data[i-2])/3);
+    const maPts = ma.map((v,i)=>({x:(i/(data.length-1))*W, y:H-((v-min)/(max-min))*H}));
+    ctx.moveTo(maPts[0].x,maPts[0].y);
+    maPts.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.strokeStyle='rgba(245,158,11,.5)';
+    ctx.lineWidth=1.5;
+    ctx.setLineDash([4,4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Main line
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x,pts[0].y);
+  for(let i=1;i<pts.length;i++){
+    const cx=(pts[i-1].x+pts[i].x)/2;
+    ctx.bezierCurveTo(cx,pts[i-1].y,cx,pts[i].y,pts[i].x,pts[i].y);
+  }
+  ctx.strokeStyle='#e8622a';
+  ctx.lineWidth=2.5;
+  ctx.stroke();
+
+  // Dots
+  pts.forEach((p,i)=>{
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,i===pts.length-1?5:3,0,Math.PI*2);
+    ctx.fillStyle=i===pts.length-1?'#e8622a':'rgba(232,98,42,.6)';
+    ctx.fill();
+  });
+}
+
+// ══════════════════════════════════════════
+// DONUT CHART
+// ══════════════════════════════════════════
+function renderDonut(canvasId, legendId, data) {
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const W=canvas.width, H=canvas.height;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2, cy=H/2, R=Math.min(W,H)/2-6, r=R*0.55;
+  let angle=-Math.PI/2;
+  const total=data.reduce((a,d)=>a+d.pct,0);
+  data.forEach(d=>{
+    const sweep=(d.pct/total)*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,R,angle,angle+sweep);
+    ctx.closePath();
+    ctx.fillStyle=d.color||'#888';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--s2').trim()||'#1c1915';
+    ctx.fill();
+    angle+=sweep;
+  });
+  if(legendId) {
+    document.getElementById(legendId).innerHTML = data.map(d=>`
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${d.color}"></div>
+        <span class="legend-name">${d.name}</span>
+        <span class="legend-pct">${d.pct}%</span>
+      </div>`).join('');
+  }
+}
+
+// ══════════════════════════════════════════
+// HEATMAP
+// ══════════════════════════════════════════
+function renderHeatmap() {
+  const wrap=document.getElementById('heatmap-wrap');
+  if(!wrap) return;
+  const hm=DATA.heatmap;
+  const maxVal=Math.max(...hm.flat());
+  const cols=HOURS.length;
+
+  wrap.innerHTML=`
+    <div style="display:flex;gap:4px">
+      <div class="hm-day-labels">${DAYS_ID.map(d=>`<div class="hm-day-lbl">${d}</div>`).join('')}</div>
+      <div>
+        <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:3px">
+          ${hm.map(row=>row.map((v,hi)=>{
+            const intensity=v/maxVal;
+            const alpha=.1+intensity*.85;
+            return `<div class="hm-cell" style="background:rgba(232,98,42,${alpha.toFixed(2)});width:100%;height:14px"
+              onmouseenter="showTip(event,'${HOURS[hi]}:00',${v}+' pesanan')"
+              onmouseleave="hideTip()"></div>`;
+          }).join('')).join('')}
+        </div>
+        <div class="hm-label-row" style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:3px">
+          ${HOURS.map(h=>`<div class="hm-label">${h}</div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════
+// BAR LIST
+// ══════════════════════════════════════════
+function renderTopMenuBars(id, items) {
+  const el=document.getElementById(id); if(!el) return;
+  const max=items[0].orders;
+  const colors=['#e8622a','#f59e0b','#22c55e','#60a5fa','#a78bfa','#f472b6'];
+  el.innerHTML=items.map((m,i)=>`
+    <div class="bar-item">
+      <div>
+        <div class="bar-name">${m.emoji} ${m.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(m.orders/max*100).toFixed(1)}%;background:${colors[i%colors.length]}"></div></div>
+      </div>
+      <div class="bar-val">${m.orders}<br><span style="font-size:9px;color:var(--muted)">${fmtShort(m.revenue)}</span></div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// TABLE TURNOVER GRID
+// ══════════════════════════════════════════
+function renderTurnoverGrid() {
+  const el=document.getElementById('turnover-grid'); if(!el) return;
+  const turnoverData=Array.from({length:16},(_,i)=>({num:i+1,turns:rand(0,4)}));
+  el.innerHTML=turnoverData.map(t=>`
+    <div class="tt-cell turns-${t.turns}" onmouseenter="showTip(event,'Meja ${t.num}','${t.turns} cover')" onmouseleave="hideTip()">
+      <div class="tt-num">${t.num}</div>
+      <div class="tt-turns">${t.turns}×</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// LIVE TICKER
+// ══════════════════════════════════════════
+function renderTicker() {
+  const events=[
+    `Meja <b>7</b> → Nasi Goreng × 2 (${fmtShort(70000)})`,
+    `Meja <b>3</b> → Pembayaran GoPay <b>berhasil</b>`,
+    `Pelanggan baru bergabung antrian`,
+    `Meja <b>12</b> → Ayam Geprek × 3`,
+    `KDS: Pesanan Meja <b>5</b> siap saji`,
+    `Meja <b>9</b> → Udang Saus Padang (${fmtShort(65000)})`,
+    `Voucher ulang tahun dikirim ke <b>Dewi Kusuma</b>`,
+    `Meja <b>1</b> → Pembayaran OVO berhasil`,
+  ];
+  const doubled=[...events,...events];
+  const el=document.getElementById('ticker-items');
+  if(el) el.innerHTML=doubled.map(e=>`<div class="ticker-item">${e}</div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// REVENUE SCREEN
+// ══════════════════════════════════════════
+function renderRevenue() {
+  const rev = DATA.range==='week'?DATA.revenue7:DATA.range==='month'?DATA.revenue30:DATA.revenue7.slice(-1);
+  const total = rev.reduce((a,b)=>a+b,0);
+  const avg   = total/rev.length;
+
+  document.getElementById('kpi-revenue').innerHTML = [
+    kpiCard('Total Pendapatan', fmtShort(total), +11, 'var(--acc)', '💰'),
+    kpiCard('Rata-rata Harian', fmtShort(avg), +4, 'var(--acc2)', '📊'),
+    kpiCard('Hari Terbaik', fmtShort(Math.max(...rev)), +0, 'var(--acc3)', '🏆'),
+    kpiCard('Total Transaksi', DATA.orders.filter(o=>o.status==='closed').length, +7, 'var(--blue)', '🧾', ' tx'),
+  ].join('');
+
+  setTimeout(()=>{
+    renderRevenueChart('rev2-canvas','rev2-y-labels','rev2-x-labels', DATA.revenue30, 30);
+  },0);
+
+  const catRev={};
+  DATA.menuOrders.forEach(m=>{ catRev[m.cat]=(catRev[m.cat]||0)+m.revenue; });
+  const catColors={Nasi:'#e8622a',Mie:'#f59e0b',Ayam:'#22c55e',Seafood:'#60a5fa',Sayur:'#a78bfa',Minuman:'#f472b6'};
+  const total2=Object.values(catRev).reduce((a,b)=>a+b,0);
+  renderDonut('donut2-canvas','donut2-legend',
+    Object.entries(catRev).map(([name,val])=>({name,pct:Math.round(val/total2*100),color:catColors[name]||'#888'}))
+  );
+
+  const tbody=DATA.orders.map(o=>`<tr>
+    <td><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">#${o.id}</span></td>
+    <td>Meja ${o.table}</td>
+    <td>${o.customer}</td>
+    <td>${o.items} item</td>
+    <td><span class="status-pill ${o.status==='closed'?'pill-closed':o.status==='open'?'pill-open':o.status==='ready'?'pill-ready':'pill-cancelled'}">${o.status}</span></td>
+    <td><span style="font-family:'DM Mono',monospace">${o.method}</span></td>
+    <td style="font-weight:700;font-family:'DM Mono',monospace;color:var(--acc)">${fmtShort(o.total)}</td>
+    <td style="color:var(--muted);font-family:'DM Mono',monospace">${o.time}</td>
+  </tr>`).join('');
+  document.getElementById('orders-table').innerHTML=`
+    <thead><tr><th>#</th><th>Meja</th><th>Pelanggan</th><th>Item</th><th>Status</th><th>Metode</th><th>Total</th><th>Waktu</th></tr></thead>
+    <tbody>${tbody}</tbody>`;
+}
+
+// ══════════════════════════════════════════
+// MENU SCREEN
+// ══════════════════════════════════════════
+function renderMenuScreen() {
+  const items=DATA.menuOrders;
+  const totalOrders=items.reduce((a,m)=>a+m.orders,0);
+  const totalRev=items.reduce((a,m)=>a+m.revenue,0);
+
+  document.getElementById('kpi-menu').innerHTML=[
+    kpiCard('Total Item Terjual',totalOrders,+9,'var(--acc)','🍽️',' item'),
+    kpiCard('Pendapatan Menu',fmtShort(totalRev),+11,'var(--acc2)','💰'),
+    kpiCard('Menu Terlaris',items[0].name.split(' ').slice(0,2).join(' '),+0,'var(--acc3)','🏆'),
+    kpiCard('Avg. Item/Pesanan','3.4',+2,'var(--blue)','📦',' item'),
+  ].join('');
+
+  renderTopMenuBars('full-menu-bars', items);
+
+  const catCount={};
+  items.forEach(m=>catCount[m.cat]=(catCount[m.cat]||0)+m.orders);
+  const catColors={Nasi:'#e8622a',Mie:'#f59e0b',Ayam:'#22c55e',Seafood:'#60a5fa',Sayur:'#a78bfa',Minuman:'#f472b6'};
+  const ct=Object.values(catCount).reduce((a,b)=>a+b,0);
+  renderDonut('donut3-canvas','donut3-legend',
+    Object.entries(catCount).map(([n,v])=>({name:n,pct:Math.round(v/ct*100),color:catColors[n]||'#888'}))
+  );
+
+  const sorted=[...items].sort((a,b)=>a.orders-b.orders);
+  renderTopMenuBars('least-menu-bars', sorted.slice(0,4));
+}
+
+// ══════════════════════════════════════════
+// QUEUE SCREEN
+// ══════════════════════════════════════════
+function renderQueueScreen() {
+  document.getElementById('kpi-queue').innerHTML=[
+    kpiCard('Antrian Hari Ini',DATA.queueToday,+8,'var(--acc)','🕐',' tamu'),
+    kpiCard('Avg. Tunggu',DATA.avgWait+' mnt',+0,'var(--acc2)','⏱'),
+    kpiCard('Berhasil Duduk',`${rand(82,91)}%`,+2,'var(--acc3)','✅'),
+    kpiCard('No-show Rate',`${rand(10,18)}%`,-3,'var(--red)','❌'),
+  ].join('');
+
+  // Peak hour bar chart
+  setTimeout(()=>{
+    const wrap=document.getElementById('peak-canvas-wrap');
+    if(!wrap) return;
+    const canvas=document.getElementById('peak-canvas');
+    const W=wrap.clientWidth, H=wrap.clientHeight||180;
+    canvas.width=W; canvas.height=H;
+    const ctx=canvas.getContext('2d');
+    const avgByHour=HOURS.map((_,hi)=>Math.round(DATA.heatmap.reduce((a,row)=>a+row[hi],0)/7));
+    const max=Math.max(...avgByHour);
+    const bw=(W-60)/(HOURS.length)-4;
+    ctx.clearRect(0,0,W,H);
+    avgByHour.forEach((v,i)=>{
+      const x=60+i*(bw+4);
+      const bh=(v/max)*(H-40);
+      const y=H-30-bh;
+      const hour=HOURS[i];
+      const isPeak=hour>=12&&hour<=14||hour>=18&&hour<=21;
+      const grad=ctx.createLinearGradient(0,y,0,H-30);
+      grad.addColorStop(0,isPeak?'#e8622a':'rgba(232,98,42,.45)');
+      grad.addColorStop(1,isPeak?'rgba(232,98,42,.3)':'rgba(232,98,42,.1)');
+      ctx.fillStyle=grad;
+      ctx.beginPath();
+      ctx.roundRect(x,y,bw,bh,3);
+      ctx.fill();
+      ctx.fillStyle='rgba(122,112,96,.7)';
+      ctx.font='9px Sora';
+      ctx.textAlign='center';
+      ctx.fillText(`${HOURS[i]}`,x+bw/2,H-14);
+      ctx.fillStyle='rgba(240,235,224,.5)';
+      ctx.fillText(v,x+bw/2,y-4);
+    });
+  },0);
+}
+
+// ══════════════════════════════════════════
+// TABLES SCREEN
+// ══════════════════════════════════════════
+function renderTablesScreen() {
+  const turnoverData=Array.from({length:16},(_,i)=>({num:i+1,turns:rand(0,4),covers:rand(0,16)}));
+  const totalCovers=turnoverData.reduce((a,t)=>a+t.covers,0);
+  const avgTurnover=(turnoverData.reduce((a,t)=>a+t.turns,0)/16).toFixed(1);
+  const maxCovers=Math.max(...turnoverData.map(t=>t.covers));
+
+  document.getElementById('kpi-tables').innerHTML=[
+    kpiCard('Total Cover',totalCovers,+6,'var(--acc)','🪑',' tamu'),
+    kpiCard('Avg. Turnover',avgTurnover,+2,'var(--acc2)','🔄',' × / meja'),
+    kpiCard('Meja Tersibuk','Meja '+turnoverData.sort((a,b)=>b.covers-a.covers)[0].num,+0,'var(--acc3)','🏆'),
+    kpiCard('Avg. Durasi','52 menit',-4,'var(--blue)','⏱'),
+  ].join('');
+
+  // Table heatmap
+  const hm=document.getElementById('table-heatmap');
+  if(hm) {
+    const sorted=[...turnoverData].sort((a,b)=>a.num-b.num);
+    hm.innerHTML=sorted.map(t=>{
+      const intensity=t.covers/maxCovers;
+      const alpha=.08+intensity*.75;
+      return `<div style="aspect-ratio:1;border-radius:10px;background:rgba(232,98,42,${alpha.toFixed(2)});border:1px solid rgba(42,37,32,.6);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s"
+        onmouseenter="showTip(event,'Meja ${t.num}','${t.covers} cover, ${t.turns}× turnover')" onmouseleave="hideTip()"
+        onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform=''">
+        <div style="font-size:12px;font-weight:800">${t.num}</div>
+        <div style="font-size:9px;color:rgba(240,235,224,.6);margin-top:2px">${t.covers}×</div>
+      </div>`;
+    }).join('');
+    const legendBar=document.getElementById('legend-bar');
+    if(legendBar) legendBar.innerHTML=Array.from({length:8},(_,i)=>`<div style="width:18px;height:8px;border-radius:2px;background:rgba(232,98,42,${.08+i*.12})">`).join('');
+  }
+
+  // Duration bars
+  const cats=['Meja 2 kursi','Meja 4 kursi','Meja 6 kursi','Meja 8 kursi'];
+  const durations=[42,54,67,81];
+  const dEl=document.getElementById('table-duration-bars');
+  if(dEl) {
+    dEl.innerHTML=cats.map((cat,i)=>`
+      <div class="bar-item">
+        <div>
+          <div class="bar-name">${cat}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(durations[i]/90*100).toFixed(0)}%;background:var(--acc)"></div></div>
+        </div>
+        <div class="bar-val">${durations[i]}m</div>
+      </div>`).join('');
+  }
+}
+
+// ══════════════════════════════════════════
+// CRM SCREEN
+// ══════════════════════════════════════════
+function renderCRM() {
+  const c=DATA.customers;
+  const totalSpend=c.reduce((a,cu)=>a+cu.spend,0);
+
+  document.getElementById('kpi-crm').innerHTML=[
+    kpiCard('Total Pelanggan',c.length*rand(4,6),+8,'var(--acc)','👥',' orang'),
+    kpiCard('Pelanggan Baru (30h)',rand(18,32),+12,'var(--acc2)','✨'),
+    kpiCard('Avg. Total Spend',fmtShort(totalSpend/c.length),+5,'var(--acc3)','💳'),
+    kpiCard('Retention Rate',`${rand(68,76)}%`,+3,'var(--blue)','🔄'),
+  ].join('');
+
+  const tbody=c.slice(0,20).map((cu,i)=>{
+    const tierMap={regular:'tier-regular',silver:'tier-silver',gold:'tier-gold',vip:'tier-vip'};
+    const tierEmoji={regular:'⚪',silver:'🥈',gold:'🥇',vip:'💎'};
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px;font-family:'DM Mono',monospace">${i+1}</td>
+      <td style="font-weight:600">${cu.name}</td>
+      <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px">${cu.phone}</td>
+      <td>${cu.visits}×</td>
+      <td style="font-weight:700;color:var(--acc);font-family:'DM Mono',monospace">${fmtShort(cu.spend)}</td>
+      <td><span class="tier-badge ${tierMap[cu.tier]}">${tierEmoji[cu.tier]} ${cu.tier}</span></td>
+      <td style="color:var(--muted);font-size:11px">${cu.lastVisit}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('crm-table').innerHTML=`
+    <thead><tr><th>#</th><th>Nama</th><th>HP</th><th>Kunjungan</th><th>Total Spend</th><th>Tier</th><th>Terakhir</th></tr></thead>
+    <tbody>${tbody}</tbody>`;
+
+  const tierCount={regular:0,silver:0,gold:0,vip:0};
+  c.forEach(cu=>tierCount[cu.tier]++);
+  const tot=c.length;
+  renderDonut('donut4-canvas','donut4-legend',[
+    {name:'Regular',pct:Math.round(tierCount.regular/tot*100),color:'#6b7280'},
+    {name:'Silver', pct:Math.round(tierCount.silver/tot*100), color:'#94a3b8'},
+    {name:'Gold',   pct:Math.round(tierCount.gold/tot*100),   color:'#f59e0b'},
+    {name:'VIP',    pct:Math.round(tierCount.vip/tot*100),    color:'#a78bfa'},
+  ]);
+
+  const bdays=c.filter(cu=>cu.birthday).slice(0,4);
+  document.getElementById('birthday-list').innerHTML=bdays.map(cu=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(245,158,11,.06);border-radius:8px">
+      <span style="font-size:18px">🎂</span>
+      <div style="flex:1"><div style="font-size:12px;font-weight:600">${cu.name}</div><div style="font-size:11px;color:var(--muted)">${cu.birthday}</div></div>
+      <div style="font-size:10px;font-weight:700;color:var(--acc2);background:rgba(245,158,11,.12);padding:3px 8px;border-radius:5px">20% off</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// LOYALTY SCREEN
+// ══════════════════════════════════════════
+function renderLoyalty() {
+  document.getElementById('kpi-loyalty').innerHTML=[
+    kpiCard('Voucher Aktif',rand(42,68),+5,'var(--acc)','🎟️',' voucher'),
+    kpiCard('Voucher Digunakan',`${rand(34,46)}%`,+8,'var(--acc2)','✅'),
+    kpiCard('Birthday Voucher',rand(8,15),+0,'var(--acc3)','🎂',' bulan ini'),
+    kpiCard('Avg. Discount','18%',+2,'var(--blue)','💸'),
+  ].join('');
+
+  const voucherData=[
+    {label:'Birthday',count:12,color:'#f59e0b'},
+    {label:'Loyalty Gold',count:8,color:'#a78bfa'},
+    {label:'Loyalty VIP',count:5,color:'#e8622a'},
+    {label:'Manual',count:3,color:'#60a5fa'},
+  ];
+  const maxV=Math.max(...voucherData.map(v=>v.count));
+  document.getElementById('voucher-bars').innerHTML=voucherData.map(v=>`
+    <div class="bar-item">
+      <div>
+        <div class="bar-name">${v.label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(v.count/maxV*100).toFixed(0)}%;background:${v.color}"></div></div>
+      </div>
+      <div class="bar-val">${v.count}</div>
+    </div>`).join('');
+
+  const repeatData=[
+    {label:'1× kunjungan',pct:28,color:'#6b7280'},
+    {label:'2-5× kunjungan',pct:35,color:'#60a5fa'},
+    {label:'6-15× kunjungan',pct:24,color:'#22c55e'},
+    {label:'16×+ kunjungan',pct:13,color:'#e8622a'},
+  ];
+  document.getElementById('repeat-bars').innerHTML=repeatData.map(r=>`
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="color:var(--muted2)">${r.label}</span>
+        <span style="font-weight:700;font-family:'DM Mono',monospace">${r.pct}%</span>
+      </div>
+      <div style="height:8px;background:var(--s3);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${r.pct}%;background:${r.color};border-radius:4px;transition:width 1s"></div>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// REALTIME SCREEN
+// ══════════════════════════════════════════
+function renderRealtime() {
+  document.getElementById('kpi-rt').innerHTML=[
+    kpiCard('Pendapatan Sekarang',fmtShort(DATA.rtRevenue),+8,'var(--acc)','⚡'),
+    kpiCard('Pesanan Aktif',rand(4,9),+0,'var(--blue)','🧾',' meja'),
+    kpiCard('Di Dapur',rand(3,7),+0,'var(--acc2)','🍳',' order'),
+    kpiCard('Antrian Sekarang',rand(0,5),+0,'var(--acc3)','🕐',' tamu'),
+  ].join('');
+
+  const activeOrders=DATA.orders.filter(o=>o.status!=='closed').slice(0,8);
+  document.getElementById('rt-orders-list').innerHTML=activeOrders.map(o=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border)">
+      <div style="width:32px;height:32px;border-radius:8px;background:rgba(232,98,42,.12);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--acc)">${o.table}</div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600">${o.customer}</div>
+        <div style="font-size:11px;color:var(--muted)">${o.items} item · ${o.time}</div>
+      </div>
+      <span class="status-pill ${o.status==='open'?'pill-open':o.status==='ready'?'pill-ready':'pill-closed'}">${o.status}</span>
+      <span style="font-weight:700;font-size:12px;color:var(--acc);font-family:'DM Mono',monospace">${fmtShort(o.total)}</span>
+    </div>`).join('');
+
+  document.getElementById('rt-revenue').textContent=fmtShort(DATA.rtRevenue);
+  document.getElementById('rt-vs-yesterday').textContent='+8.2%';
+
+  // Mini sparkline
+  setTimeout(()=>{
+    const canvas=document.getElementById('rt-canvas');
+    if(!canvas) return;
+    const W=canvas.parentElement.clientWidth-36; const H=80;
+    canvas.width=W; canvas.height=H;
+    const ctx=canvas.getContext('2d');
+    const d=[...DATA.rtData, DATA.rtRevenue];
+    const max=Math.max(...d)*1.05; const min=Math.min(...d)*0.95;
+    const pts=d.map((v,i)=>({x:i/(d.length-1)*W, y:H-((v-min)/(max-min))*H}));
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x,H);
+    pts.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.lineTo(pts[pts.length-1].x,H);
+    ctx.fillStyle='rgba(232,98,42,.15)';
+    ctx.fill();
+    ctx.beginPath();
+    pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.strokeStyle='#e8622a';
+    ctx.lineWidth=2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(pts[pts.length-1].x,pts[pts.length-1].y,4,0,Math.PI*2);
+    ctx.fillStyle='#e8622a';
+    ctx.fill();
+  },0);
+}
+
+// ══════════════════════════════════════════
+// TOOLTIP
+// ══════════════════════════════════════════
+function showTip(e,name,val) {
+  const t=document.getElementById('tooltip');
+  document.getElementById('tt-name').textContent=name;
+  document.getElementById('tt-val').textContent=val;
+  t.style.display='block';
+  t.style.left=(e.clientX+12)+'px';
+  t.style.top=(e.clientY-10)+'px';
+}
+function hideTip(){document.getElementById('tooltip').style.display='none';}
+
+// ══════════════════════════════════════════
+// LIVE UPDATE SIMULATION
+// ══════════════════════════════════════════
+setInterval(()=>{
+  DATA.rtRevenue+=rand(8000,45000);
+  DATA.rtData.push(DATA.rtRevenue);
+  if(DATA.rtData.length>20) DATA.rtData.shift();
+  const badge=document.getElementById('live-badge');
+  badge.textContent=rand(2,5);
+  if(currentScreen()==='realtime') renderRealtime();
+  if(currentScreen()==='overview') {
+    document.getElementById('kpi-overview').querySelector('.kpi-val').textContent=fmtShort(DATA.rtRevenue);
+  }
+}, 8000);
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+window.addEventListener('resize',()=>renderScreen(currentScreen()));
+renderOverview();
+</script>
+</body>
+</html>
